@@ -3,7 +3,7 @@ package com.tsunderebug.speedrunbot.data
 import java.io.{File, FileWriter}
 
 import net.liftweb.json
-import sx.blah.discord.handle.obj.{IChannel, IGuild, IRole, IUser}
+import sx.blah.discord.handle.obj.{IChannel, IGuild, IRole}
 
 import scala.io.Source
 
@@ -13,7 +13,7 @@ object Database {
   if (!file.exists()) {
     file.createNewFile()
     val fw = new FileWriter(file)
-    fw.write(json.Serialization.write[Database](Database(Map(), Map(), Map(), Map()))(json.DefaultFormats))
+    fw.write(json.Serialization.write[Database](Database(Map(), Map(), Map()))(json.DefaultFormats))
     fw.close()
   }
   private var _db: Database = json.Serialization.read[Database](Source.fromFile(file).mkString)(json.DefaultFormats, manifest)
@@ -28,21 +28,17 @@ object Database {
   }
 
   def setStreamChannel(g: IGuild, c: IChannel): Unit = {
-    db = Database(db.streamChannels + (g.getStringID -> c.getStringID), db.runnerRoles, db.games, db.pbs)
+    db = Database(db.streamChannels + (g.getStringID -> c.getStringID), db.runnerRoles, db.games)
   }
 
   def setStreamRole(g: IGuild, r: IRole): Unit = {
-    db = Database(db.streamChannels, db.runnerRoles + (g.getStringID -> r.getStringID), db.games, db.pbs)
+    db = Database(db.streamChannels, db.runnerRoles + (g.getStringID -> r.getStringID), db.games)
   }
 
   def addGame(g: IGuild, game: String): Unit = {
-    db = Database(db.streamChannels, db.runnerRoles, db.games + (g.getStringID -> (db.games.getOrElse(g.getStringID, Array()) :+ game)), db.pbs)
-  }
-
-  def addPB(u: IUser, game: String, time: String): Unit = {
-    db = Database(db.streamChannels, db.runnerRoles, db.games, db.pbs + (u.getStringID -> (db.pbs.getOrElse(u.getStringID, Map()) + (game -> time))))
+    db = Database(db.streamChannels, db.runnerRoles, db.games + (g.getStringID -> (db.games.getOrElse(g.getStringID, Array()) :+ game)))
   }
 
 }
 
-case class Database(streamChannels: Map[String, String] = Map(), runnerRoles: Map[String, String] = Map(), games: Map[String, Array[String]] = Map(), pbs: Map[String, Map[String, String]] = Map())
+case class Database(streamChannels: Map[String, String] = Map(), runnerRoles: Map[String, String] = Map(), games: Map[String, Array[String]] = Map())

@@ -26,7 +26,6 @@
     <orderEntry type="library" name="SBT: com.fasterxml.jackson.core:jackson-core:2.8.7:jar" level="project" />
     <orderEntry type="library" name="SBT: com.fasterxml.jackson.core:jackson-databind:2.8.7:jar" level="project" />
     <orderEntry type="library" name="SBT: com.fasterxml.jackson.module:jackson-module-afterburner:2.8.7:jar" level="project" />
-    <orderEntry type="library" name="SBT: com.github.austinv11:Discord4J:dev-SNAPSHOT:jar" level="project" />
     <orderEntry type="library" name="SBT: com.googlecode.soundlibs:jlayer:1.0.1-2:jar" level="project" />
     <orderEntry type="library" name="SBT: com.googlecode.soundlibs:mp3spi:1.9.5-2:jar" level="project" />
     <orderEntry type="library" name="SBT: com.googlecode.soundlibs:tritonus-share:0.3.7-3:jar" level="project" />
@@ -68,5 +67,8 @@
     <orderEntry type="library" name="SBT: com.github.urgrue:Java-Twitch-Api-Wrapper:develop-SNAPSHOT:jar" level="project" />
     <orderEntry type="library" name="SBT: com.ning:async-http-client:1.8.17:jar" level="project" />
     <orderEntry type="library" name="SBT: io.netty:netty:3.9.2.Final:jar" level="project" />
+    <orderEntry type="library" name="SBT: com.google.code.gson:gson:2.8.1:jar" level="project" />
+    <orderEntry type="library" name="SBT: com.github.austinv11:Discord4J:f9695fb:jar" level="project" />
+    <orderEntry type="library" name="SBT: com.github.TsundereBug:Speedrun4J:fac542b:jar" level="project" />
   </component>
 </module>
