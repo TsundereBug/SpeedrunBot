@@ -1,13 +1,42 @@
 package com.tsunderebug.speedrunbot.command
 
+import java.io.FileNotFoundException
+
 import com.tsunderebug.speedrun4j.game.run.PlacedRun
 import com.tsunderebug.speedrun4j.game.{Game, GameList, Leaderboard}
+import com.tsunderebug.speedrun4j.user.User
 import com.tsunderebug.speedrunbot.FormatUtil
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent
 import sx.blah.discord.util.{EmbedBuilder, MessageBuilder}
 
 object PersonalBest extends Command("pb", "Lists PBs", (_: MessageReceivedEvent) => true, (e: MessageReceivedEvent) => {
-  e.getChannel.sendMessage("Command in rework for Speedrun.com sync")
+  val name = e.getMessage.getContent.split("\\s+")(2)
+  try {
+    val page = if (e.getMessage.getContent.split("\\s+").length >= 4) e.getMessage.getContent.split("\\s+")(3).toInt else 1
+    val u = User.fromID(name)
+    val pbs = u.getPBs
+    val pbd = pbs.getData.filter(_.getRun.getCategory.getType != "per-level")
+    val mb = new MessageBuilder(e.getClient)
+    mb.appendContent("PBs for user " + u.getNames.get("international") + ": _(" + ((page - 1) * 20 + 1) + "-" + Math.min(page * 20, pbd.length) + " out of " + pbd.length + ")_```\n")
+    pbd.slice((page - 1) * 20, page * 20).foreach((r: PlacedRun) => {
+      val c = r.getRun.getCategory
+      val g = c.getGame
+      val p = r.getPlace
+      val t = FormatUtil.msToTime((r.getRun.getTimes.getPrimaryT * 1000).asInstanceOf[Long])
+      mb.appendContent(g.getNames.get("international") + ": " + c.getName + " - " + p + (p % 10 match {
+        case 1 if p % 100 != 11 => "st"
+        case 2 if p % 100 != 12 => "nd"
+        case 3 if p % 100 != 13 => "rd"
+        case _ => "th"
+      }) + " with " + t + "\n")
+    })
+    mb.appendContent("```")
+    mb.withChannel(e.getChannel)
+    mb.send()
+  } catch {
+    case _: FileNotFoundException => e.getChannel.sendMessage("Not a valid speedrun.com user!")
+    case _: NumberFormatException => e.getChannel.sendMessage("Not a valid page number!")
+  }
   true
 }
 ) {

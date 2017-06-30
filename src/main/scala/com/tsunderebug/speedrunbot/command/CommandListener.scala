@@ -26,7 +26,8 @@ object CommandListener extends IListener[MessageReceivedEvent] {
     )),
     Tree(PersonalBest, Seq(
       Tree(PersonalBest.Game, Seq())
-    ))
+    )),
+    Tree(GuildDump, Seq())
   ))
 
   override def handle(e: MessageReceivedEvent): Unit = {
