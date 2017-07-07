@@ -45,7 +45,7 @@ object Runs extends Command("runs", "Lists runs", (_: MessageReceivedEvent) => t
             case 1 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyFirst.getUri)
             case 2 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophySecond.getUri)
             case 3 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyThird.getUri)
-            case 4 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyFourth.getUri)
+            case 4 if run.getRun.getCategory.getGame.getAssets.getTrophyFourth != null => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyFourth.getUri)
             case _ => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getIcon.getUri)
           }
           c.sendMessage(eb.build())
@@ -128,7 +128,8 @@ object Runs extends Command("runs", "Lists runs", (_: MessageReceivedEvent) => t
       case 1 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyFirst.getUri)
       case 2 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophySecond.getUri)
       case 3 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyThird.getUri)
-      case 4 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyFourth.getUri)
+      case 4 if run.getRun.getCategory.getGame.getAssets.getTrophyFourth != null => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyFourth.getUri)
+      case _ => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getIcon.getUri)
     }
     c.sendMessage(eb.build())
   }
