@@ -7,7 +7,7 @@ import com.tsunderebug.speedrun4j.game.{Game, GameList, Leaderboard}
 import com.tsunderebug.speedrun4j.user.User
 import com.tsunderebug.speedrunbot.FormatUtil
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent
-import sx.blah.discord.util.{EmbedBuilder, MessageBuilder}
+import sx.blah.discord.util.MessageBuilder
 
 object PersonalBest extends Command("pb", "Lists PBs", (_: MessageReceivedEvent) => true, (e: MessageReceivedEvent) => {
   val name = e.getMessage.getContent.split("\\s+")(2)
@@ -41,6 +41,12 @@ object PersonalBest extends Command("pb", "Lists PBs", (_: MessageReceivedEvent)
 }
 ) {
 
+  def runs(game: String, category: String): Array[PlacedRun] = {
+    val g = GameList.withName(game).getGames.find(_.getNames.values().contains(game)).get
+    val c = g.getCategories.getCategories.filter(_.getType != "per-level").find(_.getName == category).get
+    Leaderboard.forCategory(c).getRuns
+  }
+
   object Game extends Command("game", "Sorts and searches PBs by game name", (_: MessageReceivedEvent) => true, (e: MessageReceivedEvent) => {
     val full = e.getMessage.getContent.split("\\s+").drop(3).mkString(" ")
     val probable: Array[Game] = GameList.withName(full).getGames
@@ -53,33 +59,19 @@ object PersonalBest extends Command("pb", "Lists PBs", (_: MessageReceivedEvent)
     } else {
       val (beforeLast, afterLast) = full.splitAt(full.lastIndexOf(": "))
       val Array(game, category) = (beforeLast + ":" + afterLast).split(":: ", 2)
-      val gl: Array[Game] = GameList.withName(game).getGames
-      if (gl.exists(_.getNames.values().contains(game))) {
-        val g = gl.find(_.getNames.values().contains(game)).get
-        val cl = g.getCategories.getCategories.filter(_.getType != "per-level")
-        if (cl.exists(_.getName == category)) {
-          val c = cl.find(_.getName == category).get
-          val mb = new MessageBuilder(e.getClient)
-          mb.withContent("Leaderboard for **" + game + "**:")
-          val eb = new EmbedBuilder
-          eb.withColor(0x43b581)
-          eb.setLenient(false)
-          eb.appendDesc("```\n")
-          val runs = Leaderboard.forCategory(c).getRuns
-          runs.take(20).sortBy(_.getPlace).foreach((r: PlacedRun) => eb.appendDesc(FormatUtil.msToTime((r.getRun.getTimes.getPrimaryT * 1000).asInstanceOf[Long]) + " - " + r.getRun.getPlayers.map(_.getName).mkString(", ") + "\n"))
-          eb.appendDesc("```")
-          mb.withChannel(e.getChannel)
-          mb.withEmbed(eb.build())
-          mb.send()
-        } else {
-          e.getChannel.sendMessage("Not a category! One of:```\n" + cl.foldLeft("")(_ + _.getName + "\n") + "```")
+      try {
+        val pr = runs(game, category)
+      } catch {
+        case _: NoSuchElementException => {
+          e.getChannel.sendMessage("Didn't find **" + game + "**, **" + category + "**. Run `-s pb [game]` to find categories for your game. _Note: Categories with a `: ` in them are not supported yet._")
         }
-      } else if (probable.exists(_.getNames.values().contains(full))) {
-        e.getChannel.sendMessage("Specify a category! One of:```\n" + probable.find(_.getNames.values().contains(full)).get.getCategories.getCategories.filter(_.getType != "per-level").foldLeft("")(_ + _.getName + "\n") + "```")
-      } else {
-        e.getChannel.sendMessage("Didn't find **" + full + "** as a game. Did you mean:```\n" + gl.foldLeft("")(_ + _.getNames.get("international") + "\n" + "```"))
       }
     }
+    true
+  })
+
+  object WorldRecord extends Command("wr", "Get information about the World Record run of a Game: Category", (_: MessageReceivedEvent) => true, (e: MessageReceivedEvent) => {
+
     true
   })
 

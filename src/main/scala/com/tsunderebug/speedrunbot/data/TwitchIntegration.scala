@@ -7,6 +7,8 @@ import com.urgrue.twitch.api.{TwitchApiClient, models}
 import sx.blah.discord.handle.obj.IChannel
 import sx.blah.discord.util.{EmbedBuilder, MessageBuilder}
 
+import scala.util.Random
+
 object TwitchIntegration {
 
   val twitch = new TwitchApiClient()
@@ -76,18 +78,17 @@ object TwitchIntegration {
           if (ts.isOnline) {
             mb.withContent(ts.getChannel.getDisplayName + " is **online** playing **" + ts.getGame + "**!")
             eb.withAuthorName(ts.getChannel.getStatus)
-            eb.withImage(ts.getPreview.getLarge)
+            eb.withImage(ts.getPreview.getLarge + "?randomthingyfornocache=" + new Random().nextLong())
             eb.withColor(0x6441a5)
             eb.appendField("Views", ts.getChannel.getViews.toString, true)
             eb.appendField("Followers", ts.getChannel.getFollowers.toString, true)
             eb.appendField("Watching", ts.getViewers.toString, true)
           } else {
-            mb.withContent(ts.getChannel.getDisplayName + " is **offline.**")
-            eb.withAuthorName(ts.getChannel.getDisplayName)
-            eb.withDescription("Last stream was **" + ts.getChannel.getStatus + "** playing **" + ts.getGame + "**.")
-            eb.withColor(0x7f7f7f)
-            eb.appendField("Views", ts.getChannel.getViews.toString, true)
-            eb.appendField("Followers", ts.getChannel.getFollowers.toString, true)
+            new Thread(() => {
+              Thread.sleep(10000)
+              showTwitchEmbed(c, _url)
+            }).start()
+            return false
           }
           eb.withAuthorIcon(ts.getChannel.getLogo)
           eb.withAuthorUrl(ts.getChannel.getUrl)
