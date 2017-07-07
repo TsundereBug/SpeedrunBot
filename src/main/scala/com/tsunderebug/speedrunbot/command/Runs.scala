@@ -38,7 +38,11 @@ object Runs extends Command("runs", "Lists runs", (_: MessageReceivedEvent) => t
           val eb = new EmbedBuilder
           eb.withColor(run.getRun.getPlayers.head.getColor)
           eb.withAuthorName(run.getRun.getPlayers.map(_.getName).mkString(", ") + "'s " + oname(run.getPlace) + " place run of " + run.getRun.getCategory.getGame.getNames.get("international") + ": " + run.getRun.getCategory.getName + " with " + FormatUtil.msToTime((run.getRun.getTimes.getPrimaryT * 1000).asInstanceOf[Int]))
-          eb.appendField("Notes:", run.getRun.getComment, false)
+          try {
+            eb.appendField("Notes:", run.getRun.getComment, false)
+          } catch {
+            case _: IllegalArgumentException =>
+          }
           eb.withThumbnail(run.getRun.getCategory.getGame.getAssets.getCoverLarge.getUri)
           eb.appendDescription("**Video(s):** " + run.getRun.getVideos.getLinks.map(_.getUri).mkString("<", ">, <", ">"))
           run.getPlace match {
@@ -121,7 +125,11 @@ object Runs extends Command("runs", "Lists runs", (_: MessageReceivedEvent) => t
     val eb = new EmbedBuilder
     eb.withColor(run.getRun.getPlayers.head.getColor)
     eb.withAuthorName(run.getRun.getPlayers.map(_.getName).mkString(", ") + "'s " + name(run.getPlace) + " place run of " + run.getRun.getCategory.getGame.getNames.get("international") + ": " + run.getRun.getCategory.getName + " with " + FormatUtil.msToTime((run.getRun.getTimes.getPrimaryT * 1000).asInstanceOf[Int]))
-    eb.appendField("Notes:", run.getRun.getComment, false)
+    try {
+      eb.appendField("Notes:", run.getRun.getComment, false)
+    } catch {
+      case _: IllegalArgumentException =>
+    }
     eb.withThumbnail(run.getRun.getCategory.getGame.getAssets.getCoverLarge.getUri)
     eb.appendDescription("**Video(s):** " + run.getRun.getVideos.getLinks.map(_.getUri).mkString("<", ">, <", ">"))
     run.getPlace match {

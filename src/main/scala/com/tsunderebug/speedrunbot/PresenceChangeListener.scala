@@ -16,7 +16,7 @@ object PresenceChangeListener extends IListener[PresenceUpdateEvent] {
 
   override def handle(e: PresenceUpdateEvent): Unit = {
     if (e.getNewPresence.getStreamingUrl.isPresent && !e.getOldPresence.getStreamingUrl.isPresent) {
-      if (System.currentTimeMillis() - u(e.getUser) > TimeUnit.MINUTES.toMillis(5l)) {
+      if (!u.contains(e.getUser) || System.currentTimeMillis() - u(e.getUser) > TimeUnit.MINUTES.toMillis(5l)) {
         u += (e.getUser -> System.currentTimeMillis())
         val url = e.getNewPresence.getStreamingUrl.get()
         val game = TwitchIntegration.game(url)
