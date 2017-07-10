@@ -69,6 +69,6 @@
     <orderEntry type="library" name="SBT: io.netty:netty:3.9.2.Final:jar" level="project" />
     <orderEntry type="library" name="SBT: com.google.code.gson:gson:2.8.1:jar" level="project" />
     <orderEntry type="library" name="SBT: com.github.austinv11:Discord4J:f9695fb:jar" level="project" />
-    <orderEntry type="library" name="SBT: com.github.TsundereBug:Speedrun4J:a8186c2:jar" level="project" />
+    <orderEntry type="library" name="SBT: com.github.TsundereBug:Speedrun4J:2749b3c:jar" level="project" />
   </component>
 </module>
