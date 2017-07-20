@@ -25,7 +25,8 @@ object CommandListener extends IListener[MessageReceivedEvent] {
       Tree(StreamAlert.Game, Seq())
     )),
     Tree(Runs.List, Seq(
-      Tree(Runs.Link, Seq())
+      Tree(Runs.Link, Seq()),
+      Tree(Runs.Role, Seq())
     )),
     Tree(GuildDump, Seq())
   ))
