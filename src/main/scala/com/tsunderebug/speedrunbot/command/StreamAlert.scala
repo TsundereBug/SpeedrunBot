@@ -12,7 +12,7 @@ object StreamAlert extends Command("stream", "Use subcommands to configure alert
   }
 ) {
 
-  object Channel extends Command("channel", PermissionChecks.manageServer,
+  object Channel extends Command("channel", "Send alerts to a specific channel.", PermissionChecks.manageServer,
     (e: MessageReceivedEvent) => {
       if (e.getMessage.getChannelMentions.isEmpty) {
         e.getChannel.sendMessage("Stream alerts are sent to " + e.getClient.getChannelByID(Database.db.streamChannels(e.getGuild.getStringID).toLong).mention())
@@ -24,7 +24,7 @@ object StreamAlert extends Command("stream", "Use subcommands to configure alert
     }
   )
 
-  object Role extends Command("role", PermissionChecks.manageServer,
+  object Role extends Command("role", "Filter alerts to a specific role.", PermissionChecks.manageServer,
     (e: MessageReceivedEvent) => {
       if (e.getMessage.getContent.split("\\s+").length <= 3) {
         val r = e.getClient.getRoleByID(Database.db.runnerRoles(e.getGuild.getStringID).toLong)
@@ -42,7 +42,7 @@ object StreamAlert extends Command("stream", "Use subcommands to configure alert
     }
   )
 
-  object Game extends Command("game", PermissionChecks.manageServer,
+  object Game extends Command("game", "Add or remove a game filter to alerts.", PermissionChecks.manageServer,
     (e: MessageReceivedEvent) => {
       val game = e.getMessage.getContent.split("\\s+").drop(3).mkString(" ")
       if (e.getMessage.getContent.split("\\s+").length <= 3) {
