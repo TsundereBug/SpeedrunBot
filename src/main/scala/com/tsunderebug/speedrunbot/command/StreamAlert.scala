@@ -50,10 +50,10 @@ object StreamAlert extends Command("stream", "Use subcommands to configure alert
       } else {
         if (!Database.db.games.contains(e.getGuild.getStringID)) {
           Database.addGame(e.getGuild, game)
-          Database.db = Database(Database.db.streamChannels, Database.db.runnerRoles, Database.db.games + (e.getGuild.getStringID -> Database.db.games(e.getGuild.getStringID).filter(game.!=)))
+          Database.db = Database(Database.db.streamChannels, Database.db.runnerRoles, Database.db.games + (e.getGuild.getStringID -> Database.db.games(e.getGuild.getStringID).filter(game.!=)), Database.db.srcomlinks)
         }
         if (Database.db.games(e.getGuild.getStringID).contains(game)) {
-          Database.db = Database(Database.db.streamChannels, Database.db.runnerRoles, Database.db.games + (e.getGuild.getStringID -> Database.db.games(e.getGuild.getStringID).filter(game.!=)))
+          Database.db = Database(Database.db.streamChannels, Database.db.runnerRoles, Database.db.games + (e.getGuild.getStringID -> Database.db.games(e.getGuild.getStringID).filter(game.!=)), Database.db.srcomlinks)
           e.getChannel.sendMessage("Removed " + game + " from the whitelist.")
         } else {
           Database.addGame(e.getGuild, game)

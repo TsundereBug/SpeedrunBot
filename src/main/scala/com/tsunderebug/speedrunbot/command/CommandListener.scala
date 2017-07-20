@@ -24,9 +24,8 @@ object CommandListener extends IListener[MessageReceivedEvent] {
       Tree(StreamAlert.Role, Seq()),
       Tree(StreamAlert.Game, Seq())
     )),
-    Tree(Runs, Seq(
-      Tree(Runs.Game, Seq()),
-      Tree(Runs.WorldRecord, Seq())
+    Tree(Runs.List, Seq(
+      Tree(Runs.Link, Seq())
     )),
     Tree(GuildDump, Seq())
   ))
@@ -34,8 +33,8 @@ object CommandListener extends IListener[MessageReceivedEvent] {
   override def handle(e: MessageReceivedEvent): Unit = {
     if (e.getMessage.getContent.startsWith("-s ")) {
       val command: Command = findCommand(e.getMessage.getContent.split("\\s+").drop(1).mkString(" "))
-      if (command.check.test(e)) {
-        command.call.test(e)
+      if (command.check(e)) {
+        command.call(e)
       }
     }
   }

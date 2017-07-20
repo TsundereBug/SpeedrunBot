@@ -1,196 +1,113 @@
 package com.tsunderebug.speedrunbot.command
 
-import java.io.FileNotFoundException
+import java.io.IOException
+import java.util
 
 import com.tsunderebug.speedrun4j.game.run.PlacedRun
-import com.tsunderebug.speedrun4j.game.{Game, GameList, Leaderboard}
 import com.tsunderebug.speedrun4j.user.User
-import com.tsunderebug.speedrunbot.FormatUtil
 import com.tsunderebug.speedrunbot.data.Database
-import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent
-import sx.blah.discord.handle.obj.IChannel
-import sx.blah.discord.util.{EmbedBuilder, MessageBuilder}
+import com.tsunderebug.speedrunbot.{FormatUtil, PermissionChecks}
+import sx.blah.discord.api.internal.json.objects.EmbedObject
+import sx.blah.discord.handle.obj.{IRole, Permissions}
+import sx.blah.discord.util.{EmbedBuilder, RequestBuffer}
 
-object Runs extends Command("runs", "Lists runs", (_: MessageReceivedEvent) => true, (e: MessageReceivedEvent) => {
-  def oname(num: Int): String = {
-    num + (num % 10 match {
-      case 1 if num % 100 != 11 => "st"
-      case 2 if num % 100 != 12 => "nd"
-      case 3 if num % 100 != 13 => "rd"
-      case _ => "th"
-    })
+object Runs {
+
+  def place(p: Int): String = {
+    p % 10 match {
+      case 1 if (p % 100) / 10 != 1 => p + "st"
+      case 2 if (p % 100) / 10 != 1 => p + "nd"
+      case 3 if (p % 100) / 10 != 1 => p + "rd"
+      case _ => p + "th"
+    }
   }
 
-  if (e.getMessage.getContent.split("\\s+").length > 2) {
-    val name = e.getMessage.getContent.split("\\s+")(2)
-    try {
-      val u = User.fromID(name)
-      val pbs = u.getPBs
-      val pbd = pbs.getData.filter(_.getRun.getCategory.getType != "per-level")
-      if (e.getMessage.getContent.contains(" - ")) {
-        val gamec = e.getMessage.getContent.substring(e.getMessage.getContent.indexOf(" - ") + 3)
-        val (beforeLast, afterLast) = gamec.splitAt(gamec.lastIndexOf(": "))
-        val Array(game, category) = (beforeLast + ":" + afterLast).split(":: ", 2)
-        val upb = pbd.filter((r: PlacedRun) => r.getRun.getCategory.getGame.getNames.containsValue(game) && r.getRun.getCategory.getName == category)
-        if (upb.isEmpty) {
-          e.getChannel.sendMessage("Didn't find any runs of **" + game + ": " + category + "** by **" + name + "**.")
-        } else if (upb.length > 1) {
-          e.getChannel.sendMessage("Found multiple runs of **" + game + ": " + category + "** by **" + name + "**. _There is no way to select one at the moment._")
-        } else {
-          def showRunDetails(c: IChannel, run: PlacedRun): Unit = {
-            val eb = new EmbedBuilder
-            eb.withColor(run.getRun.getPlayers.head.getColor)
-            eb.withAuthorName(run.getRun.getPlayers.map(_.getName).mkString(", ") + "'s " + oname(run.getPlace) + " place run of " + run.getRun.getCategory.getGame.getNames.get("international") + ": " + run.getRun.getCategory.getName + " with " + FormatUtil.msToTime((run.getRun.getTimes.getPrimaryT * 1000).asInstanceOf[Int]))
-            try {
-              eb.appendField("Notes:", run.getRun.getComment, false)
-            } catch {
-              case _: IllegalArgumentException =>
-            }
-            eb.withThumbnail(run.getRun.getCategory.getGame.getAssets.getCoverLarge.getUri)
-            eb.appendDescription("**Video(s):** " + run.getRun.getVideos.getLinks.map(_.getUri).mkString("<", ">, <", ">"))
-            run.getPlace match {
-              case 1 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyFirst.getUri)
-              case 2 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophySecond.getUri)
-              case 3 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyThird.getUri)
-              case 4 if run.getRun.getCategory.getGame.getAssets.getTrophyFourth != null => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyFourth.getUri)
-              case _ => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getIcon.getUri)
-            }
-            c.sendMessage(eb.build())
-          }
+  def runListEmbed(runs: Array[PlacedRun]): EmbedObject = runListEmbed(runs, order = false)
 
-          showRunDetails(e.getChannel, upb.head)
-        }
-      } else {
-        val page = if (e.getMessage.getContent.split("\\s+").length >= 4) e.getMessage.getContent.split("\\s+")(3).toInt else 1
-        val mb = new MessageBuilder(e.getClient)
-        mb.appendContent("PBs for user " + u.getNames.get("international") + ": _(" + ((page - 1) * 20 + 1) + "-" + Math.min(page * 20, pbd.length) + " out of " + pbd.length + ")_```\n")
-        pbd.slice((page - 1) * 20, page * 20).foreach((r: PlacedRun) => {
-          val c = r.getRun.getCategory
-          val g = c.getGame
-          val p = r.getPlace
-          val t = FormatUtil.msToTime((r.getRun.getTimes.getPrimaryT * 1000).asInstanceOf[Long])
-          mb.appendContent(g.getNames.get("international") + ": " + c.getName + " - " + oname(num = p) + " with " + t + "\n")
-        })
-        mb.appendContent("```")
-        mb.withChannel(e.getChannel)
-        mb.send()
-      }
-    } catch {
-      case _: FileNotFoundException => e.getChannel.sendMessage("Not a valid speedrun.com user!")
-      case _: NumberFormatException => e.getChannel.sendMessage("Not a valid page number!")
-    }
-  } else {
-    if (Database.db.srcomlinks.contains(e.getAuthor.getStringID)) {
-      val u = User.fromID(Database.db.srcomlinks(e.getAuthor.getStringID))
-      val pbs = u.getPBs
-      val pbd = pbs.getData.filter(_.getRun.getCategory.getType != "per-level")
-      val page = 1 // if (e.getMessage.getContent.split("\\s+").length >= 4) e.getMessage.getContent.split("\\s+")(3).toInt else 1
-      val mb = new MessageBuilder(e.getClient)
-      mb.appendContent("PBs for user " + u.getNames.get("international") + ": _(" + ((page - 1) * 20 + 1) + "-" + Math.min(page * 20, pbd.length) + " out of " + pbd.length + ")_```\n")
-      pbd.slice((page - 1) * 20, page * 20).foreach((r: PlacedRun) => {
-        val c = r.getRun.getCategory
-        val g = c.getGame
-        val p = r.getPlace
-        val t = FormatUtil.msToTime((r.getRun.getTimes.getPrimaryT * 1000).asInstanceOf[Long])
-        mb.appendContent(g.getNames.get("international") + ": " + c.getName + " - " + oname(num = p) + " with " + t + "\n")
+  def runListEmbed(runs: Array[PlacedRun], order: Boolean): EmbedObject = runListEmbed(runs, order, 0)
+
+  def runListEmbed(runs: Array[PlacedRun], order: Boolean, page: Int): EmbedObject = {
+    val r = (if (order) runs.sortBy(_.getPlace) else runs).slice(20 * page, 20 * page + 20)
+    val eb = new EmbedBuilder
+    if (r.isEmpty) {
+      eb.appendDesc("No runs here!")
+    } else {
+      eb.withColor(runs(0).getRun.getPlayers()(0).getColor)
+      eb.setLenient(false)
+      eb.appendDescription("Page " + (page + 1) + " out of " + (runs.length / 20 + 1) + "\n")
+      eb.appendDescription("```\n")
+      r.foreach((r) => {
+        eb.appendDescription((FormatUtil.msToTime((r.getRun.getTimes.getPrimaryT * 1000).asInstanceOf[Long]) + " - " + place(r.getPlace) + " place run of " + r.getRun.getCategory.getGame.getNames.get("international") + ": " + r.getRun.getCategory.getName + " (by " + r.getRun.getPlayers.map(_.getName).mkString(", ") + ")\n").replaceAll(" ", "\u00A0"))
       })
-      mb.appendContent("```")
-      mb.withChannel(e.getChannel)
-      mb.send()
-    } else {
-      if (e.getChannel.isPrivate) {
-        e.getChannel.sendMessage("Go to <https://www.speedrun.com/api/auth>, copy your api key, and run `-s verify` in a PM with your API key. **This will only work in a DM! API keys are not stored. If you believe _anyone_ is using your API key, __reset it.__**")
-      } else {
-        e.getChannel.sendMessage("Run `-s runs` in a PM to receive instructions on how to link your Speedrun.com account with your Discord account.")
-      }
+      eb.appendDesc("```")
     }
-  }
-  true
-}
-) {
-
-  def name(num: Int): String = {
-    num + (num % 10 match {
-      case 1 if num % 100 != 11 => "st"
-      case 2 if num % 100 != 12 => "nd"
-      case 3 if num % 100 != 13 => "rd"
-      case _ => "th"
-    })
+    eb.build()
   }
 
-  def runs(game: String, category: String): Array[PlacedRun] = {
-    val g = GameList.withName(game).getGames.find(_.getNames.values().contains(game)).get
-    val c = g.getCategories.getCategories.filter(_.getType != "per-level").find(_.getName == category).get
-    Leaderboard.forCategory(c).getRuns
-  }
-
-  object Game extends Command("game", "Sorts and searches PBs by game name", (_: MessageReceivedEvent) => true, (e: MessageReceivedEvent) => {
-    val full = e.getMessage.getContent.split("\\s+").drop(3).mkString(" ")
-    val probable: Array[Game] = GameList.withName(full).getGames
-    if (!full.contains(": ")) {
-      if (probable.exists(_.getNames.values().contains(full))) {
-        e.getChannel.sendMessage("Specify a category! One of:```\n" + probable.find(_.getNames.values().contains(full)).get.getCategories.getCategories.filter(_.getType != "per-level").foldLeft("")(_ + _.getName + "\n") + "```")
-      } else {
-        e.getChannel.sendMessage("Didn't find **" + full + "** as a game. Did you mean:```\n" + probable.foldLeft("")(_ + _.getNames.get("international") + "\n") + "```")
+  object List extends Command("runs", "List your or mention user's runs if you are connected to SRCom.", (_) => true, (e) => {
+    val u = if (e.getMessage.getMentions.isEmpty) e.getAuthor else e.getMessage.getMentions.get(0)
+    if (Database.db.srcomlinks.contains(u.getStringID)) {
+      val su = User.fromID(Database.db.srcomlinks(u.getStringID))
+      try {
+        val p: Int = e.getMessage.getContent.split("\\s+")(if (e.getMessage.getMentions.isEmpty) 2 else 3).toInt
+        e.getChannel.sendMessage(su.getNames.get("international") + "'s runs:", runListEmbed(su.getPBs.getData, order = false, p - 1))
+      } catch {
+        case _: NumberFormatException | _: ArrayIndexOutOfBoundsException =>
+          e.getChannel.sendMessage(su.getNames.get("international") + "'s runs:", runListEmbed(su.getPBs.getData))
       }
     } else {
-      val (beforeLast, afterLast) = full.splitAt(full.lastIndexOf(": "))
-      val Array(game, category) = (beforeLast + ":" + afterLast).split(":: ", 2)
-      try {
-        val pr = runs(game, category)
-        val mb = new MessageBuilder(e.getClient)
-        mb.withChannel(e.getChannel)
-        mb.appendContent("Runs for **" + game + ": " + category + "**:\n```" + pr.sortBy(_.getPlace).take(20).map((r) => FormatUtil.msToTime((r.getRun.getTimes.getPrimaryT * 1000).asInstanceOf[Int]) + " - " + r.getRun.getPlayers.map(_.getName).mkString(", ")).mkString("\n") + "```")
-        mb.send()
-      } catch {
-        case _: NoSuchElementException =>
-          e.getChannel.sendMessage("Didn't find **" + game + "**, **" + category + "**. Run `-s pb [game]` to find categories for your game. _Note: Categories with a `: ` in them are not supported yet._")
+      if (u.equals(e.getAuthor)) {
+        e.getChannel.sendMessage("You have not linked your Speedrun.com account to your Discord account! Do it by running `-s runs link` in a PM.")
+      } else {
+        e.getChannel.sendMessage(u.mention + " has not linked their Speedrun.com account to their Discord account. They can do it by running `-s runs link` in a PM.")
       }
     }
     true
   })
 
-  def showRunDetails(c: IChannel, run: PlacedRun): Unit = {
-    val eb = new EmbedBuilder
-    eb.withColor(run.getRun.getPlayers.head.getColor)
-    eb.withAuthorName(run.getRun.getPlayers.map(_.getName).mkString(", ") + "'s " + name(run.getPlace) + " place run of " + run.getRun.getCategory.getGame.getNames.get("international") + ": " + run.getRun.getCategory.getName + " with " + FormatUtil.msToTime((run.getRun.getTimes.getPrimaryT * 1000).asInstanceOf[Int]))
-    try {
-      eb.appendField("Notes:", run.getRun.getComment, false)
-    } catch {
-      case _: IllegalArgumentException =>
-    }
-    eb.withThumbnail(run.getRun.getCategory.getGame.getAssets.getCoverLarge.getUri)
-    eb.appendDescription("**Video(s):** " + run.getRun.getVideos.getLinks.map(_.getUri).mkString("<", ">, <", ">"))
-    run.getPlace match {
-      case 1 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyFirst.getUri)
-      case 2 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophySecond.getUri)
-      case 3 => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyThird.getUri)
-      case 4 if run.getRun.getCategory.getGame.getAssets.getTrophyFourth != null => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getTrophyFourth.getUri)
-      case _ => eb.withAuthorIcon(run.getRun.getCategory.getGame.getAssets.getIcon.getUri)
-    }
-    c.sendMessage(eb.build())
-  }
-
-  object WorldRecord extends Command("wr", "Get information about the World Record run of a Game: Category", (_: MessageReceivedEvent) => true, (e: MessageReceivedEvent) => {
-    val full = e.getMessage.getContent.split("\\s+").drop(3).mkString(" ")
-    val probable: Array[Game] = GameList.withName(full).getGames
-    if (!full.contains(": ")) {
-      if (probable.exists(_.getNames.values().contains(full))) {
-        e.getChannel.sendMessage("Specify a category! One of:```\n" + probable.find(_.getNames.values().contains(full)).get.getCategories.getCategories.filter(_.getType != "per-level").foldLeft("")(_ + _.getName + "\n") + "```")
-      } else {
-        e.getChannel.sendMessage("Didn't find **" + full + "** as a game. Did you mean:```\n" + probable.foldLeft("")(_ + _.getNames.get("international") + "\n") + "```")
+  object Link extends Command("link", "Link your Discord to your SRCom. **Only works in PMs.**", _.getChannel.isPrivate, (e) => {
+    if (e.getMessage.getContent.split("\\s+").length == 4) {
+      e.getChannel.sendMessage("Getting your user ID from your token... _SpeedrunBot does not store tokens. If you suspect someone is using your token in a malicious way, reset it at ..._")
+      try {
+        val u = User.fromApiKey(e.getMessage.getContent.split("\\s+").last)
+        e.getChannel.sendMessage("Hello, " + u.getNames.get("international") + "!")
+        Database.linkSrCoom(e.getAuthor, u.getId)
+      } catch {
+        case _: IOException => e.getChannel.sendMessage("That's not a valid API token! Get your token at <http://www.speedrun.com/api/auth>.")
       }
     } else {
-      val (beforeLast, afterLast) = full.splitAt(full.lastIndexOf(": "))
-      val Array(game, category) = (beforeLast + ":" + afterLast).split(":: ", 2)
-      try {
-        val pr = runs(game, category)
-        showRunDetails(e.getChannel, pr.minBy(_.getPlace))
-      } catch {
-        case _: NoSuchElementException =>
-          e.getChannel.sendMessage("Didn't find **" + game + "**, **" + category + "**. Run `-s pb [game]` to find categories for your game. _Note: Categories with a `: ` in them are not supported yet._")
-      }
+      e.getChannel.sendMessage("Incorrect usage! Get your token at http://www.speedrun.com/api/auth and run `-s runs link [token]` in a PM.")
     }
+    true
+  })
+
+  object Role extends Command("role", "Creates colored roles for SRCom users.", PermissionChecks.manageServer, (e) => {
+    val l: IRole = if (e.getGuild.getRolesByName("Linked to Speedrun.com").isEmpty) {
+      val lr = e.getGuild.createRole()
+      lr.changeName("Linked to Speedrun.com")
+      lr.changePermissions(util.EnumSet.noneOf(classOf[Permissions]))
+      lr
+    } else {
+      e.getGuild.getRolesByName("Linked to Speedrun.com").get(0)
+    }
+    val red = e.getGuild.getRolesByName("SpeedrunRed")
+    val coral = e.getGuild.getRolesByName("SpeedrunCoral")
+    val orange = e.getGuild.getRolesByName("SpeedrunOrange")
+    val yellow = e.getGuild.getRolesByName("SpeedrunYellow")
+    val green = e.getGuild.getRolesByName("SpeedrunGreen")
+    val mint = e.getGuild.getRolesByName("SpeedrunMint")
+    val azure = e.getGuild.getRolesByName("SpeedrunAzure")
+    val blue = e.getGuild.getRolesByName("SpeedrunBlue")
+    val purple = e.getGuild.getRolesByName("SpeedrunPurple")
+    val lavender = e.getGuild.getRolesByName("SpeedrunLavender")
+    val pink = e.getGuild.getRolesByName("SpeedrunPink")
+    val silver = e.getGuild.getRolesByName("SpeedrunSilver")
+    val white = e.getGuild.getRolesByName("SpeedrunWhite")
+    e.getGuild.getUsers.forEach((u) => {
+      if (Database.db.srcomlinks.contains(u.getStringID)) {
+        RequestBuffer.request(() => u.addRole(l))
+      }
+    })
     true
   })
 

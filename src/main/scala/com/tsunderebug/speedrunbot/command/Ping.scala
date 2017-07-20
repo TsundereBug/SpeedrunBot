@@ -18,7 +18,7 @@ object Ping extends Command("ping",
     (_: MessageReceivedEvent) => true,
     (e: MessageReceivedEvent) => {
       try {
-        val ping = Ping.call.test(e)
+        val ping = Ping.call(e)
         val b = System.currentTimeMillis()
         val m = e.getChannel.sendMessage(":ping_pong:")
         val a = System.currentTimeMillis()
