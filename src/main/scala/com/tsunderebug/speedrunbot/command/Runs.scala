@@ -11,6 +11,8 @@ import sx.blah.discord.api.internal.json.objects.EmbedObject
 import sx.blah.discord.handle.obj.{IGuild, IRole}
 import sx.blah.discord.util.{EmbedBuilder, RequestBuffer}
 
+import scala.collection.JavaConverters._
+
 object Runs {
 
   def place(p: Int): String = {
@@ -95,59 +97,62 @@ object Runs {
     }
   }
 
-  val redc = Color.RED
-  val coralc = new Color(0xff5544)
-  val orangec = Color.ORANGE
-  val yellowc = Color.YELLOW
-  val greenc = Color.GREEN
-  val mintc = new Color(0x008000)
-  val azurec = new Color(0x4455ff)
-  val bluec = Color.BLUE
-  val purplec = new Color(0x600090)
-  val lavenderc = new Color(0xaa66ff)
-  val fuchsiac = Color.MAGENTA
-  val pinkc = Color.PINK
-  val silverc = Color.GRAY
+  val redc = new Color(0xee4444)
+  val coralc = new Color(0xe77471)
+  val orangec = new Color(0xef8241)
+  val yellowc = new Color(0xf0c03e)
+  val greenc = new Color(0x8ac951)
+  val mintc = new Color(0x09b876)
+  val azurec = new Color(0x44bbee)
+  val bluec = new Color(0x6666ee)
+  val purplec = new Color(0xa010a0)
+  val lavenderc = new Color(0xc279e5)
+  val pinkc = new Color(0xf772c5)
+  val fuchsiac = new Color(0xff3091)
+  val silverc = new Color(0xb8b8b8)
   val whitec = Color.WHITE
   val colors = Seq(redc, coralc, orangec, yellowc, greenc, mintc, azurec, bluec, purplec, lavenderc, fuchsiac, pinkc, silverc, whitec)
 
   object Role extends Command("role", "Creates colored roles for SRCom users.", PermissionChecks.manageServer, (e) => {
     val g = e.getGuild
     val l = setupRole(g, "Linked to Speedrun.com", Color.BLACK)
-    val red = setupRole(g, "SpeedrunRed", redc)
-    val coral = setupRole(g, "SpeedrunCoral", coralc)
-    val orange = setupRole(g, "SpeedrunOrange", orangec)
-    val yellow = setupRole(g, "SpeedrunYellow", yellowc)
-    val green = setupRole(g, "SpeedrunGreen", greenc)
-    val mint = setupRole(g, "SpeedrunMint", mintc)
-    val azure = setupRole(g, "SpeedrunAzure", azurec)
-    val blue = setupRole(g, "SpeedrunBlue", bluec)
-    val purple = setupRole(g, "SpeedrunPurple", purplec)
-    val lavender = setupRole(g, "SpeedrunLavender", lavenderc)
-    val fuchsia = setupRole(g, "SpeedrunFuchsia", fuchsiac)
-    val pink = setupRole(g, "SpeedrunPink", pinkc)
-    val silver = setupRole(g, "SpeedrunSilver", silverc)
-    val white = setupRole(g, "SpeedrunWhite", whitec)
+    val rm: Map[Color, IRole] = colors.zip(Seq(
+      setupRole(g, "SpeedrunRed", redc),
+      setupRole(g, "SpeedrunCoral", coralc),
+      setupRole(g, "SpeedrunOrange", orangec),
+      setupRole(g, "SpeedrunYellow", yellowc),
+      setupRole(g, "SpeedrunGreen", greenc),
+      setupRole(g, "SpeedrunMint", mintc),
+      setupRole(g, "SpeedrunAzure", azurec),
+      setupRole(g, "SpeedrunBlue", bluec),
+      setupRole(g, "SpeedrunPurple", purplec),
+      setupRole(g, "SpeedrunLavender", lavenderc),
+      setupRole(g, "SpeedrunPink", pinkc),
+      setupRole(g, "SpeedrunFuchsia", fuchsiac),
+      setupRole(g, "SpeedrunSilver", silverc),
+      setupRole(g, "SpeedrunWhite", whitec)
+    )).toMap
+    if (e.getMessage.getContent.split("\\s+").length > 3) {
+      val rl: java.util.List[IRole] = RequestBuffer.request(() => g.getRolesByName(e.getMessage.getContent.split("\\s+")(3))).get()
+      if (!rl.isEmpty) {
+        val r = rl.get(0)
+        val eb = new EmbedBuilder
+        eb.withColor(r.getColor)
+        eb.appendDesc("<@&" + r.getStringID + ">")
+        e.getChannel.sendMessage("Placing Speedrun roles over", eb.build())
+        val rh = g.getRoles
+        rh.removeAll(rm.values.asJavaCollection)
+        val i = rh.indexOf(r) + 1
+        rm.values.foreach(rh.add(i, _))
+        g.reorderRoles(rh.asScala.toArray: _*)
+      }
+    }
     e.getGuild.getUsers.forEach((u) => {
       if (Database.db.srcomlinks.contains(u.getStringID)) {
         RequestBuffer.request(() => u.addRole(l))
         val uc = User.fromID(Database.db.srcomlinks(u.getStringID)).getNameStyle.getColor
-        colors.minBy((c) => Math.sqrt(Math.pow(Math.abs(c.getRed - uc.getRed), 2) + Math.pow(Math.abs(c.getGreen - uc.getGreen), 2) + Math.pow(Math.abs(c.getBlue - uc.getBlue), 2))) match {
-          case `redc` => RequestBuffer.request(() => u.addRole(red)).get()
-          case `coralc` => RequestBuffer.request(() => u.addRole(coral)).get()
-          case `orangec` => RequestBuffer.request(() => u.addRole(orange)).get()
-          case `yellowc` => RequestBuffer.request(() => u.addRole(yellow)).get()
-          case `greenc` => RequestBuffer.request(() => u.addRole(green)).get()
-          case `mintc` => RequestBuffer.request(() => u.addRole(mint)).get()
-          case `azurec` => RequestBuffer.request(() => u.addRole(azure)).get()
-          case `bluec` => RequestBuffer.request(() => u.addRole(blue)).get()
-          case `purplec` => RequestBuffer.request(() => u.addRole(purple)).get()
-          case `lavenderc` => RequestBuffer.request(() => u.addRole(lavender)).get()
-          case `fuchsiac` => RequestBuffer.request(() => u.addRole(fuchsia)).get()
-          case `pinkc` => RequestBuffer.request(() => u.addRole(pink)).get()
-          case `silverc` => RequestBuffer.request(() => u.addRole(silver)).get()
-          case `whitec` => RequestBuffer.request(() => u.addRole(white)).get()
-        }
+        val c = colors.minBy((c) => Math.sqrt(Math.pow(Math.abs(c.getRed - uc.getRed), 2) + Math.pow(Math.abs(c.getGreen - uc.getGreen), 2) + Math.pow(Math.abs(c.getBlue - uc.getBlue), 2)))
+        RequestBuffer.request(() => u.addRole(rm(c)))
       }
     })
     true
