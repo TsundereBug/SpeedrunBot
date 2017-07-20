@@ -12,6 +12,7 @@ import sx.blah.discord.handle.obj.{IGuild, IRole}
 import sx.blah.discord.util.{EmbedBuilder, RequestBuffer}
 
 import scala.collection.JavaConverters._
+import scala.collection.SortedMap
 
 object Runs {
 
@@ -111,12 +112,12 @@ object Runs {
   val fuchsiac = new Color(0xff3091)
   val silverc = new Color(0xb8b8b8)
   val whitec = Color.WHITE
-  val colors = Seq(redc, coralc, orangec, yellowc, greenc, mintc, azurec, bluec, purplec, lavenderc, fuchsiac, pinkc, silverc, whitec)
+  val colors = Seq(redc, coralc, orangec, yellowc, greenc, mintc, azurec, bluec, purplec, lavenderc, pinkc, fuchsiac, silverc, whitec)
 
   object Role extends Command("role", "Creates colored roles for SRCom users.", PermissionChecks.manageServer, (e) => {
     val g = e.getGuild
     val l = setupRole(g, "Linked to Speedrun.com", Color.BLACK)
-    val rm: Map[Color, IRole] = colors.zip(Seq(
+    val rm: SortedMap[Color, IRole] = SortedMap(colors.zip(Seq(
       setupRole(g, "SpeedrunRed", redc),
       setupRole(g, "SpeedrunCoral", coralc),
       setupRole(g, "SpeedrunOrange", orangec),
@@ -131,7 +132,7 @@ object Runs {
       setupRole(g, "SpeedrunFuchsia", fuchsiac),
       setupRole(g, "SpeedrunSilver", silverc),
       setupRole(g, "SpeedrunWhite", whitec)
-    )).toMap
+    )).toArray: _*)(colors.indexOf(_) - colors.indexOf(_))
     if (e.getMessage.getContent.split("\\s+").length > 3) {
       val rl: java.util.List[IRole] = RequestBuffer.request(() => g.getRolesByName(e.getMessage.getContent.split("\\s+")(3))).get()
       if (!rl.isEmpty) {
