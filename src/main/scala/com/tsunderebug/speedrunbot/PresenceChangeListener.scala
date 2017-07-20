@@ -21,7 +21,7 @@ object PresenceChangeListener extends IListener[PresenceUpdateEvent] {
         val url = e.getNewPresence.getStreamingUrl.get()
         val game = TwitchIntegration.game(url)
         for (i: IGuild <- e.getClient.getGuilds.asScala) {
-          if (i.getUsers.contains(e.getUser) && !Database.db.runnerRoles.contains(i.getStringID) || e.getUser.getRolesForGuild(i).asScala.map(_.getStringID).contains(Database.db.runnerRoles(i.getStringID))) {
+          if (i.getUsers.contains(e.getUser) && Database.db.runnerRoles.contains(i.getStringID) || e.getUser.getRolesForGuild(i).asScala.map(_.getStringID).contains(Database.db.runnerRoles(i.getStringID))) {
             if (!Database.db.games.contains(i.getStringID) || Database.db.games(i.getStringID).isEmpty || Database.db.games(i.getStringID).exists(_.toLowerCase.contains(game.toLowerCase))) {
               TwitchIntegration.showTwitchEmbed(e.getClient.getChannelByID(Database.db.streamChannels.getOrElse(i.getStringID, i.getGeneralChannel.getStringID).toLong), url)
             }
