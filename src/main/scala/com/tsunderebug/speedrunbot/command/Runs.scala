@@ -1,14 +1,14 @@
 package com.tsunderebug.speedrunbot.command
 
 import java.awt.Color
-import java.io.IOException
+import java.io.{FileNotFoundException, IOException}
 
 import com.tsunderebug.speedrun4j.game.run.PlacedRun
 import com.tsunderebug.speedrun4j.user.User
 import com.tsunderebug.speedrunbot.data.Database
 import com.tsunderebug.speedrunbot.{FormatUtil, PermissionChecks}
 import sx.blah.discord.api.internal.json.objects.EmbedObject
-import sx.blah.discord.handle.obj.{IGuild, IRole}
+import sx.blah.discord.handle.obj.{IGuild, IRole, Permissions}
 import sx.blah.discord.util.{EmbedBuilder, RequestBuffer}
 
 import scala.collection.JavaConverters._
@@ -48,21 +48,27 @@ object Runs {
   }
 
   object List extends Command("runs", "List your or mention user's runs if you are connected to SRCom.", (_) => true, (e) => {
-    val u = if (e.getMessage.getMentions.isEmpty) e.getAuthor else e.getMessage.getMentions.get(0)
-    if (Database.db.srcomlinks.contains(u.getStringID)) {
-      val su = User.fromID(Database.db.srcomlinks(u.getStringID))
-      try {
-        val p: Int = e.getMessage.getContent.split("\\s+")(if (e.getMessage.getMentions.isEmpty) 2 else 3).toInt
-        e.getChannel.sendMessage(su.getNames.get("international") + "'s runs:", runListEmbed(su.getPBs.getData, order = false, p - 1))
-      } catch {
-        case _: NumberFormatException | _: ArrayIndexOutOfBoundsException =>
-          e.getChannel.sendMessage(su.getNames.get("international") + "'s runs:", runListEmbed(su.getPBs.getData))
+    val u: String = if (e.getMessage.getContent.split("\\s+").length > 2) {
+      if (e.getMessage.getMentions.isEmpty) {
+        e.getMessage.getContent.split("\\s+")(2)
+      } else {
+        e.getMessage.getMentions.get(0).getStringID
       }
     } else {
-      if (u.equals(e.getAuthor)) {
-        e.getChannel.sendMessage("You have not linked your Speedrun.com account to your Discord account! Do it by running `-s runs link` in a PM.")
-      } else {
-        e.getChannel.sendMessage(u.mention + " has not linked their Speedrun.com account to their Discord account. They can do it by running `-s runs link` in a PM.")
+      e.getAuthor.getStringID
+    }
+    if (u.matches("""\d+""") && !Database.db.srcomlinks.contains(u)) {
+      e.getChannel.sendMessage((if (e.getAuthor.getStringID == u) "You have " else "<@!" + u + "> has ") + "not linked Speedrun.com with Discord. This is accomplished by running `-s runs link` in a PM.")
+    } else {
+      try {
+        val sru: User = if (u.matches("""\d+""")) User.fromID(Database.db.srcomlinks(u)) else User.fromID(u)
+        e.getChannel.sendMessage(sru.getNames.get("international") + "'s runs:", runListEmbed(sru.getPBs.getData, order = false, try {
+          e.getMessage.getContent.split("\\s+")(3).toInt - 1
+        } catch {
+          case _: NumberFormatException | _: ArrayIndexOutOfBoundsException => 0
+        }))
+      } catch {
+        case _: FileNotFoundException => e.getChannel.sendMessage("Not a valod Speedrun.com user!")
       }
     }
     true
@@ -116,46 +122,50 @@ object Runs {
 
   object Role extends Command("role", "Creates colored roles for SRCom users.", PermissionChecks.manageServer, (e) => {
     val g = e.getGuild
-    val l = setupRole(g, "Linked to Speedrun.com", Color.BLACK)
-    val rm: SortedMap[Color, IRole] = SortedMap(colors.zip(Seq(
-      setupRole(g, "SpeedrunRed", redc),
-      setupRole(g, "SpeedrunCoral", coralc),
-      setupRole(g, "SpeedrunOrange", orangec),
-      setupRole(g, "SpeedrunYellow", yellowc),
-      setupRole(g, "SpeedrunGreen", greenc),
-      setupRole(g, "SpeedrunMint", mintc),
-      setupRole(g, "SpeedrunAzure", azurec),
-      setupRole(g, "SpeedrunBlue", bluec),
-      setupRole(g, "SpeedrunPurple", purplec),
-      setupRole(g, "SpeedrunLavender", lavenderc),
-      setupRole(g, "SpeedrunPink", pinkc),
-      setupRole(g, "SpeedrunFuchsia", fuchsiac),
-      setupRole(g, "SpeedrunSilver", silverc),
-      setupRole(g, "SpeedrunWhite", whitec)
-    )).toArray: _*)(colors.indexOf(_) - colors.indexOf(_))
-    if (e.getMessage.getContent.split("\\s+").length > 3) {
-      val rl: java.util.List[IRole] = RequestBuffer.request(() => g.getRolesByName(e.getMessage.getContent.split("\\s+")(3))).get()
-      if (!rl.isEmpty) {
-        val r = rl.get(0)
-        val eb = new EmbedBuilder
-        eb.withColor(r.getColor)
-        eb.appendDesc("<@&" + r.getStringID + ">")
-        e.getChannel.sendMessage("Placing Speedrun roles over", eb.build())
-        val rh = g.getRoles
-        rh.removeAll(rm.values.asJavaCollection)
-        val i = rh.indexOf(r) + 1
-        rm.values.foreach(rh.add(i, _))
-        g.reorderRoles(rh.asScala.toArray: _*)
+    if (!e.getClient.getOurUser.getPermissionsForGuild(g).contains(Permissions.MANAGE_ROLES)) {
+      e.getChannel.sendMessage("I don't have the Manage Roles permission!")
+    } else {
+      val l = setupRole(g, "Linked to Speedrun.com", Color.BLACK)
+      val rm: SortedMap[Color, IRole] = SortedMap(colors.zip(Seq(
+        setupRole(g, "SpeedrunRed", redc),
+        setupRole(g, "SpeedrunCoral", coralc),
+        setupRole(g, "SpeedrunOrange", orangec),
+        setupRole(g, "SpeedrunYellow", yellowc),
+        setupRole(g, "SpeedrunGreen", greenc),
+        setupRole(g, "SpeedrunMint", mintc),
+        setupRole(g, "SpeedrunAzure", azurec),
+        setupRole(g, "SpeedrunBlue", bluec),
+        setupRole(g, "SpeedrunPurple", purplec),
+        setupRole(g, "SpeedrunLavender", lavenderc),
+        setupRole(g, "SpeedrunPink", pinkc),
+        setupRole(g, "SpeedrunFuchsia", fuchsiac),
+        setupRole(g, "SpeedrunSilver", silverc),
+        setupRole(g, "SpeedrunWhite", whitec)
+      )).toArray: _*)(colors.indexOf(_) - colors.indexOf(_))
+      if (e.getMessage.getContent.split("\\s+").length > 3) {
+        val rl: java.util.List[IRole] = RequestBuffer.request(() => g.getRolesByName(e.getMessage.getContent.split("\\s+")(3))).get()
+        if (!rl.isEmpty) {
+          val r = rl.get(0)
+          val eb = new EmbedBuilder
+          eb.withColor(r.getColor)
+          eb.appendDesc("<@&" + r.getStringID + ">")
+          e.getChannel.sendMessage("Placing Speedrun roles over", eb.build())
+          val rh = g.getRoles
+          rh.removeAll(rm.values.asJavaCollection)
+          val i = rh.indexOf(r) + 1
+          rm.values.foreach(rh.add(i, _))
+          g.reorderRoles(rh.asScala.toArray: _*)
+        }
       }
+      e.getGuild.getUsers.forEach((u) => {
+        if (Database.db.srcomlinks.contains(u.getStringID)) {
+          RequestBuffer.request(() => u.addRole(l))
+          val uc = User.fromID(Database.db.srcomlinks(u.getStringID)).getNameStyle.getColor
+          val c = colors.minBy((c) => Math.sqrt(Math.pow(Math.abs(c.getRed - uc.getRed), 2) + Math.pow(Math.abs(c.getGreen - uc.getGreen), 2) + Math.pow(Math.abs(c.getBlue - uc.getBlue), 2)))
+          RequestBuffer.request(() => u.addRole(rm(c)))
+        }
+      })
     }
-    e.getGuild.getUsers.forEach((u) => {
-      if (Database.db.srcomlinks.contains(u.getStringID)) {
-        RequestBuffer.request(() => u.addRole(l))
-        val uc = User.fromID(Database.db.srcomlinks(u.getStringID)).getNameStyle.getColor
-        val c = colors.minBy((c) => Math.sqrt(Math.pow(Math.abs(c.getRed - uc.getRed), 2) + Math.pow(Math.abs(c.getGreen - uc.getGreen), 2) + Math.pow(Math.abs(c.getBlue - uc.getBlue), 2)))
-        RequestBuffer.request(() => u.addRole(rm(c)))
-      }
-    })
     true
   })
 
