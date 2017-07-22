@@ -4,6 +4,7 @@ import java.awt.Color
 import java.io.{FileNotFoundException, IOException}
 
 import com.tsunderebug.speedrun4j.game.run.PlacedRun
+import com.tsunderebug.speedrun4j.game.{GameList, Leaderboard}
 import com.tsunderebug.speedrun4j.user.User
 import com.tsunderebug.speedrunbot.data.Database
 import com.tsunderebug.speedrunbot.{FormatUtil, PermissionChecks}
@@ -68,11 +69,41 @@ object Runs {
           case _: NumberFormatException | _: ArrayIndexOutOfBoundsException => 0
         }))
       } catch {
-        case _: FileNotFoundException => e.getChannel.sendMessage("Not a valod Speedrun.com user!")
+        case _: FileNotFoundException => e.getChannel.sendMessage("Not a valid Speedrun.com user!")
       }
     }
     true
   })
+
+  object Game extends Command("game", "Lists runs for a Game: Category", (_) => true, (e) => {
+    val gc: String = e.getMessage.getContent.split("\\s+").drop(3).mkString(" ")
+    splitApply2(gc, ": ", (t) => {
+      val g = t._1
+      val c = t._2
+      val gl: GameList = GameList.withName(g)
+      gl.getGames.count(_.getNames.get("international") == g) == 1 && gl.getGames()(0).getCategories.getCategories.filter((c) => c.getType != "per-level").exists(_.getName == c)
+    }) match {
+      case Some((g, c)) =>
+        e.getChannel.sendMessage("Runs for **" + g + ": " + c + "**:", runListEmbed(Leaderboard.forCategory(GameList.withName(g).getGames()(0).getCategories.getCategories.filter((c) => c.getType != "per-level").find(_.getName == c).get).getRuns, order = true))
+      case None =>
+        e.getChannel.sendMessage("Couldn't find **Game: Category** by **" + gc + "**.")
+        val gl: GameList = GameList.withName(gc.split(": ")(0))
+        val go: Option[com.tsunderebug.speedrun4j.game.Game] = gl.getGames.find(_.getNames.get("international") == gc.split(": ")(0))
+        if (go.isDefined) {
+          e.getChannel.sendMessage("Valid categories for **" + go.get.getNames.get("international") + "** are:\n```\n" + go.get.getCategories.getCategories.map(_.getName).mkString("\n") + "\n```")
+        } else {
+          e.getChannel.sendMessage("Games you might be looking for:\n```\n" + gl.getGames.map(_.getNames.get("international")).mkString("\n") + "\n```")
+        }
+    }
+    true
+  })
+
+  def splitApply2(str: String, sep: String, fun: ((String, String)) => Boolean): Option[(String, String)] = {
+    val ss = str.split(sep).toList
+    ss.indices.drop(1) map ss.splitAt map ((t) => (t._1.mkString(sep), t._2.mkString(sep))) find { case (prefix, tail) =>
+      fun(prefix, tail)
+    }
+  }
 
   object Link extends Command("link", "Link your Discord to your SRCom. **Only works in PMs.**", _.getChannel.isPrivate, (e) => {
     if (e.getMessage.getContent.split("\\s+").length == 4) {

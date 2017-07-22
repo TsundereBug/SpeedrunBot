@@ -14,7 +14,7 @@ object Main {
   private val p: Properties = new Properties()
   p.load(getClass.getResourceAsStream("/config.properties"))
   val config: mutable.Map[String, String] = p.asScala
-  val client: IDiscordClient = new ClientBuilder().withToken(config("token")).registerListener(CommandListener).registerListener(PresenceChangeListener).registerListener((event: ReadyEvent) => client.changePlayingText("-s help")).login()
+  val client: IDiscordClient = new ClientBuilder().withToken(config("token")).registerListener(CommandListener).registerListener(PresenceChangeListener).registerListener((e: ReadyEvent) => e.getClient.online("-s help")).login()
   val globals: Array[Long] = config("globals").split(",").map(_.toLong)
 
   def main(args: Array[String]): Unit = {

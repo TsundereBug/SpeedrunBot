@@ -12,6 +12,8 @@ object Help extends Command("help", (_: MessageReceivedEvent) => true, (e: Messa
         |
         |Speedrun Bot is a bot made specifically for doing things with the Speedrun.com API. Use `-s help [command]` to get some info on a command. E.g. `-s help stream game`.
         |
+        |To invite me to your own server, click this link: https://discordapp.com/oauth2/authorize?client_id=329084604986294272&scope=bot&permissions=506850417
+        |
         |Commands:
         |```""".stripMargin + "\n" + CommandListener.commands.treeString((c, l) => c.name + ("." * (16 - c.name.length)) + "[" + l + "] " + c.help) + "\n```")
   }

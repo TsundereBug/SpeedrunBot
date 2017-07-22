@@ -32,11 +32,15 @@ object StreamAlert extends Command("stream", "Use subcommands to configure alert
         eb.appendDesc("<@&" + r.getLongID + ">")
         e.getChannel.sendMessage("Stream alerts are only shown for", eb.build())
       } else {
-        val r = e.getGuild.getRolesByName(e.getMessage.getContent.split("\\s+").drop(3).mkString(" ")).get(0)
-        Database.setStreamRole(e.getGuild, r)
-        val eb = new EmbedBuilder
-        eb.appendDesc("<@&" + r.getLongID + ">")
-        e.getChannel.sendMessage("Updated stream alert filter role to", eb.build())
+        try {
+          val r = e.getGuild.getRolesByName(e.getMessage.getContent.split("\\s+").drop(3).mkString(" ")).get(0)
+          Database.setStreamRole(e.getGuild, r)
+          val eb = new EmbedBuilder
+          eb.appendDesc("<@&" + r.getLongID + ">")
+          e.getChannel.sendMessage("Updated stream alert filter role to", eb.build())
+        } catch {
+          case _: IndexOutOfBoundsException => e.getChannel.sendMessage("No such role!")
+        }
       }
       true
     }
