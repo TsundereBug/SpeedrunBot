@@ -9,7 +9,7 @@ import com.tsunderebug.speedrun4j.user.User
 import com.tsunderebug.speedrunbot.data.Database
 import com.tsunderebug.speedrunbot.{FormatUtil, PermissionChecks}
 import sx.blah.discord.api.internal.json.objects.EmbedObject
-import sx.blah.discord.handle.obj.{IGuild, IRole, Permissions}
+import sx.blah.discord.handle.obj.{IGuild, IRole, IUser, Permissions}
 import sx.blah.discord.util.{EmbedBuilder, RequestBuffer}
 
 import scala.collection.JavaConverters._
@@ -107,7 +107,7 @@ object Runs {
 
   object Link extends Command("link", "Link your Discord to your SRCom. **Only works in PMs.**", _.getChannel.isPrivate, (e) => {
     if (e.getMessage.getContent.split("\\s+").length == 4) {
-      e.getChannel.sendMessage("Getting your user ID from your token... _SpeedrunBot does not store tokens. If you suspect someone is using your token in a malicious way, reset it at ..._")
+      e.getChannel.sendMessage("Getting your user ID from your token... _SpeedrunBot does not store tokens. If you suspect someone is using your token in a malicious way, reset it by going to your settings and to API Key and clicking \"Generate new Token\"._")
       try {
         val u = User.fromApiKey(e.getMessage.getContent.split("\\s+").last)
         e.getChannel.sendMessage("Hello, " + u.getNames.get("international") + "!")
@@ -118,6 +118,19 @@ object Runs {
     } else {
       e.getChannel.sendMessage("Incorrect usage! Get your token at http://www.speedrun.com/api/auth and run `-s runs link [token]` in a PM.")
     }
+    true
+  })
+
+  object ForceLink extends Command("force", "Only usable by owner.", PermissionChecks.isGlobal, (e) => {
+    val d = e.getMessage.getContent.split("\\s+")(4)
+    val s = e.getMessage.getContent.split("\\s+")(5)
+    val u: IUser = e.getClient.fetchUser(d.toLong)
+    val sru: User = User.fromID(s)
+    Database.linkSrCoom(u, sru.getId)
+    val eb = new EmbedBuilder
+    eb.withColor(sru.getNameStyle.getColor)
+    eb.appendDescription("Linked " + u.mention() + " with " + sru.getId + " (" + sru.getNames.get("international") + ")")
+    e.getChannel.sendMessage(eb.build())
     true
   })
 
