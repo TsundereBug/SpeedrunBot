@@ -5,9 +5,9 @@ version := "1.0"
 scalaVersion := "2.12.2"
 
 libraryDependencies ++= Seq(
-  "com.github.austinv11" % "Discord4J" % "f9695fb",
+  "com.github.austinv11" % "Discord4J" % "3e16305",
   "com.github.urgrue" % "Java-Twitch-Api-Wrapper" % "develop-SNAPSHOT",
-  "com.github.TsundereBug" % "Speedrun4J" % "2749b3c",
+  "com.github.TsundereBug" % "Speedrun4J" % "6984b83",
   "com.sedmelluq" % "lavaplayer" % "1.2.42",
   "net.liftweb" %% "lift-json" % "3.1.0-RC1"
 )

@@ -4,7 +4,7 @@ import java.awt.Color
 import java.io.{FileNotFoundException, IOException}
 
 import com.tsunderebug.speedrun4j.game.run.PlacedRun
-import com.tsunderebug.speedrun4j.game.{GameList, Leaderboard}
+import com.tsunderebug.speedrun4j.game.{Category, GameList, Leaderboard}
 import com.tsunderebug.speedrun4j.user.User
 import com.tsunderebug.speedrunbot.data.Database
 import com.tsunderebug.speedrunbot.{FormatUtil, PermissionChecks}
@@ -76,15 +76,20 @@ object Runs {
   })
 
   object Game extends Command("game", "Lists runs for a Game: Category", (_) => true, (e) => {
-    val gc: String = e.getMessage.getContent.split("\\s+").drop(3).mkString(" ")
-    splitApply2(gc, ": ", (t) => {
-      val g = t._1
-      val c = t._2
-      val gl: GameList = GameList.withName(g)
-      gl.getGames.count(_.getNames.get("international") == g) == 1 && gl.getGames()(0).getCategories.getCategories.filter((c) => c.getType != "per-level").exists(_.getName == c)
-    }) match {
-      case Some((g, c)) =>
-        e.getChannel.sendMessage("Runs for **" + g + ": " + c + "**:", runListEmbed(Leaderboard.forCategory(GameList.withName(g).getGames()(0).getCategories.getCategories.filter((c) => c.getType != "per-level").find(_.getName == c).get).getRuns, order = true))
+    val gc: String = try {
+      e.getMessage.getContent.split("\\s+").takeRight(1)(0).toInt
+      e.getMessage.getContent.split("\\s+").drop(3).dropRight(1).mkString(" ")
+    } catch {
+      case _: NumberFormatException => e.getMessage.getContent.split("\\s+").drop(3).mkString(" ")
+    }
+    val p: Int = try {
+      e.getMessage.getContent.split("\\s+").takeRight(1)(0).toInt - 1
+    } catch {
+      case _: NumberFormatException => 0
+    }
+    gameCat(gc) match {
+      case Some(c) =>
+        e.getChannel.sendMessage("Runs for **" + c.getGame.getNames.get("international") + ": " + c.getName + "**:", runListEmbed(Leaderboard.forCategory(c).getRuns, order = true, p))
       case None =>
         e.getChannel.sendMessage("Couldn't find **Game: Category** by **" + gc + "**.")
         val gl: GameList = GameList.withName(gc.split(": ")(0))
@@ -105,6 +110,21 @@ object Runs {
     }
   }
 
+  def gameCat(gc: String): Option[Category] = {
+    splitApply2(gc, ": ", (t) => {
+      val g = t._1
+      val c = t._2
+      val gl: GameList = GameList.withName(g)
+      gl.getGames.count(_.getNames.get("international") == g) == 1 && gl.getGames()(0).getCategories.getCategories.filter((c) => c.getType != "per-level").exists(_.getName == c)
+    }) match {
+      case None => None
+      case Some((g, c)) => GameList.withName(g).getGames.find(_.getNames.values().contains(g)) match {
+        case Some(g) => g.getCategories.getCategories.filter((c) => c.getType != "per-level").find(_.getName == c)
+        case None => None
+      }
+    }
+  }
+
   object Link extends Command("link", "Link your Discord to your SRCom. **Only works in PMs.**", _.getChannel.isPrivate, (e) => {
     if (e.getMessage.getContent.split("\\s+").length == 4) {
       e.getChannel.sendMessage("Getting your user ID from your token... _SpeedrunBot does not store tokens. If you suspect someone is using your token in a malicious way, reset it by going to your settings and to API Key and clicking \"Generate new Token\"._")
@@ -113,10 +133,10 @@ object Runs {
         e.getChannel.sendMessage("Hello, " + u.getNames.get("international") + "!")
         Database.linkSrCoom(e.getAuthor, u.getId)
       } catch {
-        case _: IOException => e.getChannel.sendMessage("That's not a valid API token! Get your token at <http://www.speedrun.com/api/auth>.")
+        case _: IOException => e.getChannel.sendMessage("That's not a valid API token! Get your token at <https://www.speedrun.com/api/auth>.")
       }
     } else {
-      e.getChannel.sendMessage("Incorrect usage! Get your token at http://www.speedrun.com/api/auth and run `-s runs link [token]` in a PM.")
+      e.getChannel.sendMessage("Incorrect usage! Get your token at https://www.speedrun.com/api/auth and run `-s runs link [token]` in a PM.")
     }
     true
   })
@@ -209,6 +229,81 @@ object Runs {
           RequestBuffer.request(() => u.addRole(rm(c)))
         }
       })
+    }
+    true
+  })
+
+  def runInfoEmbed(r: PlacedRun): EmbedObject = {
+    val eb = new EmbedBuilder
+    eb.withColor(r.getRun.getPlayers()(0).getColor)
+    eb.withAuthorName(r.getRun.getPlayers.map(_.getName).mkString(", ") + "'s run of " + r.getRun.getCategory.getGame.getNames.get("international") + ": " + r.getRun.getCategory.getName)
+    eb.appendField("Place", place(r.getPlace), true)
+    eb.appendField("Time", FormatUtil.msToTime((r.getRun.getTimes.getPrimaryT * 1000).asInstanceOf[Long]), true)
+    eb.appendField("Runners", r.getRun.getPlayers.map(_.getName).mkString(", "), true)
+    eb.withAuthorIcon(r.getPlace match {
+      case 1 if r.getRun.getCategory.getGame.getAssets.getTrophyFirst != null => r.getRun.getCategory.getGame.getAssets.getTrophyFirst.getUri
+      case 2 if r.getRun.getCategory.getGame.getAssets.getTrophySecond != null => r.getRun.getCategory.getGame.getAssets.getTrophySecond.getUri
+      case 3 if r.getRun.getCategory.getGame.getAssets.getTrophyThird != null => r.getRun.getCategory.getGame.getAssets.getTrophyThird.getUri
+      case 4 if r.getRun.getCategory.getGame.getAssets.getTrophyFourth != null => r.getRun.getCategory.getGame.getAssets.getTrophyFourth.getUri
+      case _ => ""
+    })
+    eb.withAuthorUrl(r.getRun.getWeblink)
+    eb.withFooterText("Run verified on")
+    eb.withTimestamp(r.getRun.getStatus.getVerifyDate.getTime)
+    eb.build()
+  }
+
+  object WorldRecord extends Command("wr", "Show info about the world record run for a Game: Category", (_) => true, (e) => {
+    val gc = e.getMessage.getContent.split("\\s+").drop(3).mkString(" ")
+    gameCat(gc) match {
+      case Some(c) =>
+        e.getChannel.sendMessage("World record run for **" + c.getGame.getNames.get("international") + ": " + c.getName + "**", runInfoEmbed(Leaderboard.forCategory(c).getRuns.sortBy(_.getPlace).apply(0)))
+      case None =>
+        e.getChannel.sendMessage("Couldn't find **Game: Category** by **" + gc + "**.")
+        val gl: GameList = GameList.withName(gc.split(": ")(0))
+        val go: Option[com.tsunderebug.speedrun4j.game.Game] = gl.getGames.find(_.getNames.get("international") == gc.split(": ")(0))
+        if (go.isDefined) {
+          e.getChannel.sendMessage("Valid categories for **" + go.get.getNames.get("international") + "** are:\n```\n" + go.get.getCategories.getCategories.map(_.getName).mkString("\n") + "\n```")
+        } else {
+          e.getChannel.sendMessage("Games you might be looking for:\n```\n" + gl.getGames.map(_.getNames.get("international")).mkString("\n") + "\n```")
+        }
+    }
+    true
+  })
+
+  object PersonalBest extends Command("pb", "Show info about a user's PB for Game: Category", (_) => true, (e) => {
+    try {
+      val u: User = if (e.getMessage.getMentions.isEmpty) {
+        User.fromID(e.getMessage.getContent.split("\\s+")(3))
+      } else {
+        val i = e.getMessage.getMentions.get(0).getStringID
+        if (Database.db.srcomlinks.contains(i)) {
+          User.fromID(Database.db.srcomlinks(i))
+        } else {
+          null
+        }
+      }
+      val gc: String = e.getMessage.getContent.split("\\s+").drop(4).mkString(" ")
+      if (u != null) {
+        gameCat(gc) match {
+          case Some(c) =>
+            e.getChannel.sendMessage(u.getNames.get("international") + "'s run of " + c.getGame.getNames.get("international") + ": " + c.getName, runInfoEmbed(u.getPBs.getData.filter(_.getRun.getCategory.getId == c.getId)(0)))
+          case None =>
+            e.getChannel.sendMessage("Couldn't find **Game: Category** by **" + gc + "**.")
+            val gl: GameList = GameList.withName(gc.split(": ")(0))
+            val go: Option[com.tsunderebug.speedrun4j.game.Game] = gl.getGames.find(_.getNames.get("international") == gc.split(": ")(0))
+            if (go.isDefined) {
+              e.getChannel.sendMessage("Valid categories for **" + go.get.getNames.get("international") + "** are:\n```\n" + go.get.getCategories.getCategories.map(_.getName).mkString("\n") + "\n```")
+            } else {
+              e.getChannel.sendMessage("Games you might be looking for:\n```\n" + gl.getGames.map(_.getNames.get("international")).mkString("\n") + "\n```")
+            }
+        }
+      } else {
+        e.getChannel.sendMessage(e.getMessage.getMentions.get(0).mention() + " hasn't linked their Speedrun.com account to their Discord account. They can run -s runs for instructions.")
+      }
+    } catch {
+      case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException =>
+        e.getChannel.sendMessage("Incorrect syntax! Usage: `-s runs pb [user] [game: category]`")
     }
     true
   })

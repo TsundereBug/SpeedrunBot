@@ -29,7 +29,9 @@ object CommandListener extends IListener[MessageReceivedEvent] {
         Tree(Runs.ForceLink, Seq())
       )),
       Tree(Runs.Role, Seq()),
-      Tree(Runs.Game, Seq())
+      Tree(Runs.Game, Seq()),
+      Tree(Runs.WorldRecord, Seq()),
+      Tree(Runs.PersonalBest, Seq())
     )),
     Tree(GuildDump, Seq())
   ))
@@ -39,6 +41,8 @@ object CommandListener extends IListener[MessageReceivedEvent] {
       val command: Command = findCommand(e.getMessage.getContent.split("\\s+").drop(1).mkString(" "))
       if (command.check(e)) {
         command.call(e)
+      } else if (command.name != "-s") {
+        e.getChannel.sendMessage("Invalid permissions! Contact your server mods or TsundereBug#0641 if you believe this is an error.")
       }
     }
   }
