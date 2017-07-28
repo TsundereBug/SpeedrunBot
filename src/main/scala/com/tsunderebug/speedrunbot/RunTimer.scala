@@ -85,7 +85,7 @@ object RunTimer {
 
   def stopTimer(): Unit = {
     stop = true
-    timer.join()
+    if (timer != null) timer.join()
     lastTimes = mutable.Map()
   }
 

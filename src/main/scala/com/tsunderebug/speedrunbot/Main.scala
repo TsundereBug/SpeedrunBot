@@ -18,6 +18,7 @@ object Main {
   val client: IDiscordClient = new ClientBuilder().setMaxReconnectAttempts(500).withToken(config("token")).registerListener(CommandListener).registerListener(PresenceChangeListener).registerListener(new IListener[ReadyEvent] {
     override def handle(e: ReadyEvent): Unit = {
       e.getClient.online("-s help")
+      RunTimer.stopTimer()
       RunTimer.startTimer()
     }
   }).login()
