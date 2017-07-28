@@ -3,7 +3,7 @@ package com.tsunderebug.speedrunbot.command
 import java.awt.Color
 import java.io.{FileNotFoundException, IOException}
 
-import com.tsunderebug.speedrun4j.game.run.PlacedRun
+import com.tsunderebug.speedrun4j.game.run.{PlacedRun, Run}
 import com.tsunderebug.speedrun4j.game.{Category, GameList, Leaderboard}
 import com.tsunderebug.speedrun4j.user.User
 import com.tsunderebug.speedrunbot.data.Database
@@ -13,7 +13,7 @@ import sx.blah.discord.handle.obj.{IGuild, IRole, IUser, Permissions}
 import sx.blah.discord.util.{EmbedBuilder, RequestBuffer}
 
 import scala.collection.JavaConverters._
-import scala.collection.SortedMap
+import scala.collection.{SortedMap, mutable}
 
 object Runs {
 
@@ -248,8 +248,22 @@ object Runs {
       case _ => ""
     })
     eb.withAuthorUrl(r.getRun.getWeblink)
-    eb.withFooterText("Run verified on")
-    eb.withTimestamp(r.getRun.getStatus.getVerifyDate.getTime)
+    try {
+      eb.withTimestamp(r.getRun.getStatus.getVerifyDate.getTime)
+      eb.withFooterText("Run verified on")
+    } catch {
+      case _: NullPointerException =>
+    }
+    eb.build()
+  }
+
+  def runInfoEmbed(r: Run): EmbedObject = {
+    val eb = new EmbedBuilder
+    eb.withColor(r.getPlayers()(0).getColor)
+    eb.withAuthorName(r.getPlayers.map(_.getName).mkString(", ") + "'s run of " + r.getCategory.getGame.getNames.get("international") + ": " + r.getCategory.getName)
+    eb.appendField("Time", FormatUtil.msToTime((r.getTimes.getPrimaryT * 1000).asInstanceOf[Long]), true)
+    eb.appendField("Runners", r.getPlayers.map(_.getName).mkString(", "), true)
+    eb.withAuthorUrl(r.getWeblink)
     eb.build()
   }
 
@@ -304,6 +318,64 @@ object Runs {
     } catch {
       case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException =>
         e.getChannel.sendMessage("Incorrect syntax! Usage: `-s runs pb [user] [game: category]`")
+    }
+    true
+  })
+
+  object Updates extends Command("updates", "Use subcommands to configure run update settings", (_) => true, (_) => true)
+
+  object GameUpdates extends Command("game", "Add or remove a game to check updates for", (e) => PermissionChecks.manageServer(e) || e.getMessage.getContent.split("\\s+").drop(4).isEmpty, (e) => {
+    val g = e.getMessage.getContent.split("\\s+").drop(4).mkString(" ")
+    val gl = GameList.withName(g)
+    val go = gl.getGames.find(_.getNames.values().contains(g))
+    if (go.isDefined) {
+      e.getChannel.sendMessage("Toggling " + go.get.getNames.get("international") + " (" + go.get.getId + ") for Verification notifications.")
+      Database.toggleGame(go.get.getId, e.getGuild)
+      val gm = Database.db.gameUpdates
+      val gs: mutable.Set[String] = mutable.Set()
+      gm.foreach((t) => {
+        if (t._2(e.getGuild.getStringID)) gs += t._1
+      })
+      e.getChannel.sendMessage("You now receive updates for " + gs.map(com.tsunderebug.speedrun4j.game.Game.fromID(_).getNames.get("international")).mkString(", "))
+    } else if (g == "") {
+      val gm = Database.db.gameUpdates
+      val gs: mutable.Set[String] = mutable.Set()
+      gm.foreach((t) => {
+        if (t._2(e.getGuild.getStringID)) gs += t._1
+      })
+      e.getChannel.sendMessage("You receive updates for " + gs.map(com.tsunderebug.speedrun4j.game.Game.fromID(_).getNames.get("international")).mkString(", "))
+    } else {
+      e.getChannel.sendMessage("Couldn't find a game by **" + g + "**. Did you mean any of\n```\n" + gl.getGames.map(_.getNames.get("international")).mkString("\n") + "\n```")
+    }
+    true
+  })
+
+  object UpdateChannel extends Command("channel", "Set the channel updates go to", (e) => PermissionChecks.manageServer(e) || e.getMessage.getChannelMentions.isEmpty, (e) => {
+    if (e.getMessage.getChannelMentions.isEmpty) {
+      e.getChannel.sendMessage("Run verification updates are sent to <#" + Database.db.runUpdatesChannel.getOrElse(e.getGuild.getStringID, e.getGuild.getGeneralChannel.getStringID) + ">")
+    } else {
+      val ch = e.getMessage.getChannelMentions.get(0)
+      Database.setRunUpdatesChannel(e.getGuild, ch)
+      e.getChannel.sendMessage("Run verification updates now go to " + ch.mention())
+    }
+    true
+  })
+
+  object NewRunChannel extends Command("mod", "Set the channel new, unverified runs go to", (e) => PermissionChecks.manageServer(e), (e) => {
+    if (e.getMessage.getChannelMentions.isEmpty) {
+      if (Database.db.modVerificationChannel.contains(e.getGuild.getStringID)) {
+        e.getChannel.sendMessage("Run verification list is in <#" + Database.db.modVerificationChannel(e.getGuild.getStringID) + ">")
+      } else {
+        e.getChannel.sendMessage("Your run verification updates are disabled. Either you have not enabled them or your channel was not empty.")
+      }
+    } else {
+      val ch = e.getMessage.getChannelMentions.get(0)
+      if (ch.getMessageHistory(1).isEmpty) {
+        Database.setModVerificationChannel(e.getGuild, ch)
+        e.getChannel.sendMessage("Set verification updates to go to " + ch.mention() + ". If this channel does not remain empty (someone else chats in it) updates will be turned off.")
+      } else {
+        e.getChannel.sendMessage("That channel isn't empty! Verification updates require an empty channel to function properly.")
+      }
     }
     true
   })

@@ -31,7 +31,12 @@ object CommandListener extends IListener[MessageReceivedEvent] {
       Tree(Runs.Role, Seq()),
       Tree(Runs.Game, Seq()),
       Tree(Runs.WorldRecord, Seq()),
-      Tree(Runs.PersonalBest, Seq())
+      Tree(Runs.PersonalBest, Seq()),
+      Tree(Runs.Updates, Seq(
+        Tree(Runs.GameUpdates, Seq()),
+        Tree(Runs.UpdateChannel, Seq()),
+        Tree(Runs.NewRunChannel, Seq())
+      ))
     )),
     Tree(GuildDump, Seq())
   ))

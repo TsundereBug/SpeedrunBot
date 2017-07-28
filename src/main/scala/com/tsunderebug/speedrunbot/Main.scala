@@ -3,6 +3,7 @@ package com.tsunderebug.speedrunbot
 import java.util.Properties
 
 import com.tsunderebug.speedrunbot.command.CommandListener
+import sx.blah.discord.api.events.IListener
 import sx.blah.discord.api.{ClientBuilder, IDiscordClient}
 import sx.blah.discord.handle.impl.events.ReadyEvent
 
@@ -14,7 +15,12 @@ object Main {
   private val p: Properties = new Properties()
   p.load(getClass.getResourceAsStream("/config.properties"))
   val config: mutable.Map[String, String] = p.asScala
-  val client: IDiscordClient = new ClientBuilder().withToken(config("token")).registerListener(CommandListener).registerListener(PresenceChangeListener).registerListener((e: ReadyEvent) => e.getClient.online("-s help")).login()
+  val client: IDiscordClient = new ClientBuilder().setMaxReconnectAttempts(500).withToken(config("token")).registerListener(CommandListener).registerListener(PresenceChangeListener).registerListener(new IListener[ReadyEvent] {
+    override def handle(e: ReadyEvent): Unit = {
+      e.getClient.online("-s help")
+      RunTimer.startTimer()
+    }
+  }).login()
   val globals: Array[Long] = config("globals").split(",").map(_.toLong)
 
   def main(args: Array[String]): Unit = {
