@@ -10,9 +10,9 @@ module SpeedrunBot
       "List games or show game info of a game",
       ->(m : Discord::Message) { true },
       ->(m : Discord::Message) {
-        name = m.content.split(/\s+/)[2..-1].reduce { |acc, i| "#{acc}_#{i}" }
-        gamelist = SRcr::Game.search(name)
-        glselection = gamelist.select { |g| g.names.international.downcase == name.downcase.gsub("_", " ") || g.id == name.downcase }
+        name = m.content.split(/\s+/)[2..-1].reduce { |acc, i| "#{acc} #{i}" }
+        gamelist = SRcr::Game.search(name.gsub(" ", "_"))
+        glselection = gamelist.select { |g| g.names.international.downcase == name.downcase || g.id == name.downcase }
         if gamelist.size == 1 || glselection.size == 1
           game = if glselection.size == 1
             glselection[0]
