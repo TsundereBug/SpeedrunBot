@@ -1,0 +1,20 @@
+name: SpeedrunBot
+version: 0.1.0
+
+authors:
+  - Anthony Cerruti <aprime2003@gmail.com>
+
+targets:
+  SpeedrunBot:
+    main: src/SpeedrunBot.cr
+
+dependencies:
+  srcr:
+    github: TsundereBug/srcr
+  discordcr:
+    github: meew0/discordcr
+    branch: master
+
+crystal: 0.23.1
+
+license: MIT
