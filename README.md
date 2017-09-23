@@ -1,27 +1,27 @@
 # SpeedrunBot
 
-TODO: Write a description here
+A Discord Bot to show info from Speedrun.com written in Crystal.
 
 ## Installation
 
-TODO: Write installation instructions here
+Clone: `git clone https://github.com/TsundereBug/SpeedrunBot.git`
 
 ## Usage
 
-TODO: Write usage instructions here
+Run: `crystal run src/SpeedrunBot.cr`
 
 ## Development
 
-TODO: Write development instructions here
+Make sure command files are grouped by function.
 
 ## Contributing
 
-1. Fork it ( https://github.com/[your-github-name]/SpeedrunBot/fork )
-2. Create your feature branch (git checkout -b my-new-feature)
-3. Commit your changes (git commit -am 'Add some feature')
-4. Push to the branch (git push origin my-new-feature)
+1. Fork it ( https://github.com/TsundereBug/SpeedrunBot/fork )
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
 
 ## Contributors
 
-- [[your-github-name]](https://github.com/[your-github-name]) Anthony Cerruti - creator, maintainer
+- [TsundereBug](https://github.com/TsundereBug) Anthony Cerruti - creator, maintainer
