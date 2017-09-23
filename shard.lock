@@ -2,9 +2,9 @@ version: 1.0
 shards:
   discordcr:
     github: meew0/discordcr
-    commit: 33efc275a3255561345eb4b7052ce5f73d8efd3a
+    commit: e1e1e030fb1afecabf474ff00fb362114afaecc4
 
   srcr:
     github: TsundereBug/srcr
-    commit: 1a21248c531fbf3a51d636167c5c413839eb8807
+    commit: 64194eec552212b23a518866af545ad4c1793c28
 
