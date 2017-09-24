@@ -12,6 +12,18 @@ module SpeedrunBot
         true
       }),
       Command.new("info", "Show Speedrun Bot info", ->(m : Discord::Message) { true }, ->(m : Discord::Message) {
+        themes = [
+          {0xc0c0c0_u32, "default"},
+          {0x00c789_u32, "Mint"},
+          {0xc4c2fa_u32, "Night"},
+          {0xff36a6_u32, "Bubbles"},
+          {0xd2683a_u32, "SpeedRunsLive"},
+          {0xff5c3d_u32, "supermetroid"},
+          {0xbab7ba_u32, "hl"},
+          {0xf0ba4f_u32, "animalcrossing"},
+          {0xff878f_u32, "user/Milk"}
+        ]
+        theme = themes.sample(1)[0]
         SpeedrunBot::CLIENT.create_message(m.channel_id, "<@!#{m.author.id}>", Discord::Embed.new(
           title: "Speedrun Bot",
           description: "Speedrun Bot is a bot made to access the [Speedrun.com API](https://github.com/speedruncomorg/api) to show info on runs, games, users, etc.",
@@ -47,8 +59,8 @@ module SpeedrunBot
               inline: true
             )
           ],
-          colour: 0xf0c03e_u32,
-          image: Discord::EmbedImage.new("https://www.speedrun.com/themes/#{["Mint", "Night", "Bubbles", "SpeedRunsLive", "supermetroid", "hl", "animalcrossing", "user/Milk"].sample(1)[0]}/logo.png")
+          colour: theme[0],
+          image: Discord::EmbedImage.new("https://www.speedrun.com/themes/#{theme[1]}/logo.png")
         ))
         true
       }),

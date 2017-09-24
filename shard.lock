@@ -6,5 +6,5 @@ shards:
 
   srcr:
     github: TsundereBug/srcr
-    commit: 64194eec552212b23a518866af545ad4c1793c28
+    commit: 77cef937cca52acd4f21005f8b8c46480277038a
 

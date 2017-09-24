@@ -44,7 +44,8 @@ module SpeedrunBot
             inline: true
           )
         ],
-        thumbnail: Discord::EmbedThumbnail.new(game.assets.cover_large.uri.to_s)
+        thumbnail: Discord::EmbedThumbnail.new(game.assets.cover_large.uri.to_s),
+        image: Discord::EmbedImage.new(game.assets.logo.uri.to_s)
       )
     end
   end
