@@ -74,7 +74,4 @@ module SpeedrunBot
       )
     end
   end
-  class PlacedRunEmbed
-
-  end
 end

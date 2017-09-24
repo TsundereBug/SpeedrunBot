@@ -36,7 +36,11 @@ module SpeedrunBot
           ),
           Discord::EmbedField.new(
             name: "Moderators",
-            value: "```\n#{moderators.select{ |k, v| v == SRcr::ModeratorType::Moderator }.map{ |k, v| "#{k.names.international} (#{k.id})" }.reduce{ |acc, i| "#{acc}\n#{i}"}}\n```",
+            value: if moderators.select{ |k, v| v == SRcr::ModeratorType::Moderator }.size > 0
+              "```\n#{moderators.select{ |k, v| v == SRcr::ModeratorType::Moderator }.map{ |k, v| "#{k.names.international} (#{k.id})" }.reduce{ |acc, i| "#{acc}\n#{i}"}}\n```"
+            else
+              "None"
+            end,
             inline: true
           )
         ],

@@ -25,5 +25,9 @@ module SpeedrunBot
     end
   end
 
+  CLIENT.on_ready do |p|
+    CLIENT.status_update(status: "online", game: Discord::GamePlaying.new("-s info", 0_i64))
+  end
+
   CLIENT.run
 end
