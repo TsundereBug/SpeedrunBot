@@ -1,10 +1,18 @@
 version: 1.0
 shards:
+  db:
+    github: crystal-lang/crystal-db
+    version: 0.4.2
+
   discordcr:
     github: meew0/discordcr
     commit: e1e1e030fb1afecabf474ff00fb362114afaecc4
 
+  pg:
+    github: will/crystal-pg
+    version: 0.13.3
+
   srcr:
     github: TsundereBug/srcr
-    commit: 77cef937cca52acd4f21005f8b8c46480277038a
+    commit: ef7662f8542474308f6214e155a6ad9024e8a5a3
 

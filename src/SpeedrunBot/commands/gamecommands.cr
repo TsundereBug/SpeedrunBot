@@ -1,6 +1,6 @@
 require "../commands.cr"
-require "../gameembeds.cr"
-require "../runembeds.cr"
+require "../embeds/gameembeds.cr"
+require "../embeds/runembeds.cr"
 require "discordcr"
 require "srcr"
 
@@ -27,7 +27,7 @@ module SpeedrunBot
     end
     GAME_LIST = Command.new(
       "game",
-      "List games or show game info of a game",
+      "List games or show game info",
       ->(m : Discord::Message) { true },
       ->(m : Discord::Message) {
         name = m.content.split(/\s+/)[2..-1].reduce { |acc, i| "#{acc} #{i}" }
@@ -70,7 +70,7 @@ module SpeedrunBot
               SpeedrunBot::CLIENT.create_message(m.channel_id, "Multiple categories found for `#{catstr}`:\n```\n#{catlist.map{ |c| "#{c.name} (#{c.id})"}.reduce{ |acc, i| "#{acc}\n#{i}" }}\n```")
             end
           elsif gamelist.size == 0
-            SpeedrunBot::CLIENT.create_message(m.channel_id, "No games found for `#{name}`.")
+            SpeedrunBot::CLIENT.create_message(m.channel_id, "No games found for `#{gamestr}`.")
           else
             SpeedrunBot::CLIENT.create_message(m.channel_id, "Found these games for #{gamestr}:\n```\n#{gamelist.map{ |g| "#{g.names.international} (#{g.id})" }.reduce{ |acc, i| acc + "\n" + i}}\n```")
           end
